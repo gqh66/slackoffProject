@@ -56,6 +56,10 @@ def main() -> int:
 
     check(window.isVisible(), "主窗口显示")
     check(window._hidden_reason is None, "初始未隐藏")
+    check(
+        bool(window.windowFlags() & Qt.WindowType.WindowCloseButtonHint),
+        "右上角关闭按钮可用",
+    )
 
     window._dashboard.set_work_end("17:30")
     check(window.settings.dashboard.work_end == "17:30", "下班时间已保存")

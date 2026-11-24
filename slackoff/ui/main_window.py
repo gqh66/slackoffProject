@@ -1610,18 +1610,16 @@ class MainWindow(QMainWindow):
 
     def _apply_window_prefs(self) -> None:
         self.setWindowOpacity(self.settings.window.opacity)
-        flags = self.windowFlags()
-        if self.settings.window.always_on_top:
-            flags |= Qt.WindowType.WindowStaysOnTopHint
-        else:
-            flags &= ~Qt.WindowType.WindowStaysOnTopHint
-        if flags != self.windowFlags():
+        want_top = bool(self.settings.window.always_on_top)
+        # 不要用 flags &= ~WindowStaysOnTopHint：PySide6 的 QFlags 取反结果会
+        # 截断高位，把 WindowCloseButtonHint 一起清掉，右上角 × 会变成灰色。
+        if bool(self.windowFlags() & Qt.WindowType.WindowStaysOnTopHint) != want_top:
             was_visible = self.isVisible()
-            self.setWindowFlags(flags)
+            self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, want_top)
             if was_visible:
                 self.show()
         if self._edge_site_active and self._edge_site is not None:
-            self._edge_site.set_topmost(bool(flags & Qt.WindowType.WindowStaysOnTopHint))
+            self._edge_site.set_topmost(want_top)
 
     # ================================================================== 影院模式
     def _on_fullscreen_toggled(self, on: bool) -> None:
