@@ -15,7 +15,7 @@ class ConfigDefaultsTest(unittest.TestCase):
         self.assertTrue(settings.stealth.enabled)
         self.assertEqual(settings.stealth.trigger, "leave")
         self.assertEqual(settings.stealth.hot_corner, "left")
-        self.assertTrue(settings.window.close_to_tray)
+        self.assertEqual(settings.window.close_action, "ask")
         self.assertTrue(settings.first_run)
 
     def test_roundtrip(self):
@@ -112,6 +112,19 @@ class ConfigDefaultsTest(unittest.TestCase):
         self.assertTrue(Settings().apps.embed)
         loaded = Settings.from_dict({"apps": {"embed": False}})
         self.assertFalse(loaded.apps.embed)
+
+    def test_close_action(self):
+        for value in ("tray", "quit", "ask"):
+            settings = Settings.from_dict({"window": {"close_action": value}})
+            settings.normalize()
+            self.assertEqual(settings.window.close_action, value)
+        settings = Settings.from_dict({"window": {"close_action": "minimize"}})
+        settings.normalize()
+        self.assertEqual(settings.window.close_action, "ask")
+        # 旧配置里的 close_to_tray 不再生效，升级后先询问一次
+        legacy = Settings.from_dict({"window": {"close_to_tray": False}})
+        legacy.normalize()
+        self.assertEqual(legacy.window.close_action, "ask")
 
     def test_pinned_apps_are_cleaned(self):
         settings = Settings.from_dict(

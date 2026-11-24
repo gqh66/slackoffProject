@@ -12,6 +12,7 @@ from PySide6.QtGui import QCloseEvent, QDesktopServices, QFont, QKeySequence, QS
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QCheckBox,
     QDialog,
     QFileDialog,
     QFrame,
@@ -20,6 +21,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -85,6 +87,7 @@ class MainWindow(QMainWindow):
         self._hidden_external: list[int] = []
         self._decoy: decoy.DecoyWindow | None = None
         self._quitting = False
+        self._asking_close = False
         self._theater = False
         self._theater_prev_max = False
         self._local_shortcuts: list[QShortcut] = []
@@ -1754,16 +1757,26 @@ class MainWindow(QMainWindow):
         self.settings.window.start_maximized = False
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
-        if self._quitting or not self.settings.window.close_to_tray:
+        action = self.settings.window.close_action
+        if self._quitting or action == "quit":
             self.shutdown()
             event.accept()
             QApplication.quit()
             return
         event.ignore()
+        if action == "tray":
+            self._minimize_to_tray()
+        else:
+            QTimer.singleShot(0, self._ask_close_action)
+
+    def _minimize_to_tray(self) -> None:
+        if self.tray is None:
+            self.quit_app()
+            return
         self.hide()
         self.stealth.set_visible(False)
         self._update_tray()
-        if self.tray is not None and not self._tray_tip_shown:
+        if not self._tray_tip_shown:
             self._tray_tip_shown = True
             if self._brand.id == "default":
                 self.tray.showMessage(
@@ -1779,6 +1792,48 @@ class MainWindow(QMainWindow):
                     QSystemTrayIcon.MessageIcon.Information,
                     3000,
                 )
+
+    def _ask_close_action(self) -> None:
+        if self._quitting or self._asking_close:
+            return
+        self._asking_close = True
+        action = ""
+        try:
+            box = QMessageBox(self)
+            box.setWindowTitle("退出")
+            box.setIcon(QMessageBox.Icon.Question)
+            box.setText("要最小化到托盘，还是彻底关闭？")
+            tray_button = None
+            if self.tray is not None:
+                tray_button = box.addButton(
+                    "最小化到托盘", QMessageBox.ButtonRole.AcceptRole
+                )
+                box.setInformativeText("最小化后仍可用老板键或托盘图标唤回。")
+                box.setDefaultButton(tray_button)
+            else:
+                box.setText("系统托盘不可用，要彻底关闭吗？")
+            quit_button = box.addButton("彻底关闭", QMessageBox.ButtonRole.DestructiveRole)
+            box.addButton("取消", QMessageBox.ButtonRole.RejectRole)
+            remember = QCheckBox("记住我的选择，下次不再询问")
+            remember.setChecked(True)
+            box.setCheckBox(remember)
+            box.exec()
+            clicked = box.clickedButton()
+            if tray_button is not None and clicked is tray_button:
+                action = "tray"
+            elif clicked is quit_button:
+                action = "quit"
+            else:
+                return
+            if remember.isChecked():
+                self.settings.window.close_action = action
+                self.settings.save()
+        finally:
+            self._asking_close = False
+        if action == "quit":
+            self.quit_app()
+        else:
+            self._minimize_to_tray()
 
     def quit_app(self) -> None:
         if self._decoy is not None:

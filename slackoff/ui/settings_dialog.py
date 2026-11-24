@@ -414,10 +414,6 @@ class SettingsDialog(QDialog):
             "隐藏本工具启动的客户端窗口", self._settings.boss.hide_external
         )
         behavior_layout.addWidget(self._with_switch(row4, self._chk_hide_external))
-        self._chk_close_tray, row5 = self._checkbox(
-            "点关闭按钮时缩到托盘（而不是退出）", self._settings.window.close_to_tray
-        )
-        behavior_layout.addWidget(self._with_switch(row5, self._chk_close_tray))
         layout.addWidget(behavior)
 
         decoy_group = QGroupBox("伪装界面")
@@ -443,6 +439,16 @@ class SettingsDialog(QDialog):
         window_layout.addWidget(self._with_switch(row7, self._chk_topmost))
         self._chk_start_max, row8 = self._checkbox("启动时最大化", self._settings.window.start_maximized)
         window_layout.addWidget(self._with_switch(row8, self._chk_start_max))
+        self._close_combo = QComboBox()
+        self._close_combo.addItem("每次询问", "ask")
+        self._close_combo.addItem("最小化到托盘", "tray")
+        self._close_combo.addItem("彻底退出", "quit")
+        self._close_combo.setCurrentIndex(
+            max(0, self._close_combo.findData(self._settings.window.close_action))
+        )
+        window_layout.addWidget(
+            self._row("点关闭按钮时", self._close_combo, hint="选「每次询问」会弹出选择框")
+        )
         self._opacity = QDoubleSpinBox()
         self._opacity.setRange(0.35, 1.0)
         self._opacity.setSingleStep(0.05)
@@ -1009,7 +1015,6 @@ class SettingsDialog(QDialog):
         settings.boss.pause_media = self._chk_pause.isChecked()
         settings.boss.mute_others = self._chk_mute_others.isChecked()
         settings.boss.hide_external = self._chk_hide_external.isChecked()
-        settings.window.close_to_tray = self._chk_close_tray.isChecked()
         settings.boss.decoy = self._chk_decoy.isChecked()
         settings.boss.decoy_style = self._decoy_style.currentData()
 
@@ -1046,7 +1051,7 @@ class SettingsDialog(QDialog):
 
         settings.window.always_on_top = self._chk_topmost.isChecked()
         settings.window.start_maximized = self._chk_start_max.isChecked()
-        settings.window.close_to_tray = self._chk_close_tray.isChecked()
+        settings.window.close_action = self._close_combo.currentData()
         settings.window.opacity = self._opacity.value()
         settings.apps.embed = self._chk_embed.isChecked()
 

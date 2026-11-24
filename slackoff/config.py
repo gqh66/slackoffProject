@@ -94,7 +94,7 @@ class DisguiseSettings:
 class WindowSettings:
     always_on_top: bool = False
     start_maximized: bool = False
-    close_to_tray: bool = True
+    close_action: str = "ask"   # ask（每次询问）/ tray（缩到托盘）/ quit（彻底退出）
     opacity: float = 1.0
     geometry: list[int] | None = None
 
@@ -224,6 +224,7 @@ class Settings:
         br.zoom = _clamp_float(br.zoom, 0.5, 2.5, 1.0)
 
         w = self.window
+        w.close_action = w.close_action if w.close_action in ("ask", "tray", "quit") else "ask"
         w.opacity = _clamp_float(w.opacity, 0.35, 1.0, 1.0)
         if w.geometry and len(w.geometry) != 4:
             w.geometry = None
