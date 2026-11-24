@@ -1,0 +1,25 @@
+# 运行期数据（配置 / 日志 / 浏览器缓存）
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# 工具产物
+tools/pip-install.log
+build/
+dist/
+*.spec
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 本地 Claude Code 会话文件
+.claude/
